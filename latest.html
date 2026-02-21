@@ -68,6 +68,7 @@
         .guess-result.correct{color:#22c55e}
         .guess-result.wrong{color:#ef4444}
         @keyframes pop{from{transform:scale(0.3);opacity:0}to{transform:scale(1);opacity:1}}
+        @keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(200px) rotate(720deg);opacity:0}}
     </style>
 </head>
 <body>
@@ -315,20 +316,42 @@
             overlay.classList.add('show');
         }
 
+        let streak = 0;
+
+        function spawnConfetti() {
+            const colors = ['#FF4500','#FFD700','#00FF88','#00BFFF','#FF69B4','#a5b4fc'];
+            const overlay = document.getElementById('revealOverlay');
+            for (let i = 0; i < 40; i++) {
+                const c = document.createElement('div');
+                c.style.cssText = `position:absolute;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};top:${30+Math.random()*20}%;left:${Math.random()*100}%;opacity:1;pointer-events:none;z-index:99;animation:confettiFall ${1+Math.random()*1.5}s ease-out forwards`;
+                overlay.appendChild(c);
+                setTimeout(() => c.remove(), 2500);
+            }
+        }
+
         function submitGuess(guessedReal) {
             const p = order[current];
             const correct = guessedReal === p.isReal;
             guessTotal++;
-            if (correct) guessCorrect++;
+            if (correct) { guessCorrect++; streak++; } else { streak = 0; }
 
-            const answer = p.isReal ? '👤 REAL HUMAN' : '🤖 AI BOT';
-            const resultClass = correct ? 'correct' : 'wrong';
-            const resultText = correct ? '✅ You got it!' : '❌ Nope!';
+            const emoji = p.isReal ? '👤' : '🤖';
+            const answer = p.isReal ? 'THAT WAS REAL!' : 'IT WAS A BOT!';
+            const answerColor = p.isReal ? '#FF4500' : '#00BFFF';
 
-            // Phase 2 result: show answer
+            // Phase 2 result: big celebration/fail
             document.getElementById('guessRow').style.display = 'none';
-            document.getElementById('revealTitle').innerHTML = `<div class="guess-result ${resultClass}">${resultText}</div><div style="font-size:1.4rem;margin-top:4px">${answer}</div>`;
-            document.getElementById('revealDetail').innerHTML = `<div style="color:#888;font-size:0.75rem">Score: ${guessCorrect}/${guessTotal}</div>`;
+            document.getElementById('revealTitle').innerHTML = `
+                <div style="font-size:4rem;animation:pop 0.3s ease-out">${emoji}</div>
+                <div style="font-family:Impact;font-size:2rem;color:${answerColor};text-transform:uppercase;margin:8px 0">${answer}</div>`;
+            
+            if (correct) {
+                document.getElementById('revealDetail').innerHTML = `<div class="guess-result correct" style="font-size:1.3rem">✅ You guessed correctly!${streak > 1 ? ` (${streak} streak 🔥)` : ''}</div>`;
+                spawnConfetti();
+            } else {
+                document.getElementById('revealDetail').innerHTML = `<div class="guess-result wrong" style="font-size:1.3rem">❌ You guessed wrong!</div>`;
+            }
+            
             document.getElementById('revealTap').style.display = 'block';
             document.getElementById('revealTap').textContent = 'tap to see how it was made →';
 
