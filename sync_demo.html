@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sync Labs Demo 🎬</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a0a;color:#fff;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;-webkit-user-select:none;user-select:none}
+
+        h1{font-size:1.8rem;font-weight:900;text-align:center;margin:10px 0 4px}
+        h1 span.sync{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .subtitle{color:#888;font-size:0.85rem;text-align:center;margin-bottom:20px}
+
+        .cards{display:flex;flex-direction:column;gap:24px;width:100%;max-width:400px}
+
+        .card{border-radius:20px;overflow:hidden;background:#111;position:relative;aspect-ratio:9/16;max-height:55vh}
+        .card video{width:100%;height:100%;object-fit:cover;display:block}
+
+        .card-info{position:absolute;bottom:0;left:0;right:0;padding:16px 20px;background:linear-gradient(transparent,rgba(0,0,0,0.9))}
+        .card-name{font-size:1.3rem;font-weight:900;letter-spacing:0.5px}
+        .card-bio{font-size:0.8rem;color:#ccc;margin-top:4px;line-height:1.3}
+        .card-tag{display:inline-block;font-size:0.6rem;font-weight:700;padding:3px 8px;border-radius:10px;margin-top:6px;text-transform:uppercase;letter-spacing:1px;background:rgba(99,102,241,0.3);color:#a5b4fc;border:1px solid rgba(99,102,241,0.4)}
+
+        .mute-btn{position:absolute;top:12px;right:12px;z-index:10;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;backdrop-filter:blur(8px);-webkit-tap-highlight-color:transparent}
+
+        .tech-note{max-width:400px;background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-top:24px;font-size:0.8rem;color:#888;line-height:1.6}
+        .tech-note h3{color:#a5b4fc;font-size:0.9rem;margin-bottom:8px}
+        .tech-note strong{color:#ddd}
+
+        .compare-label{text-align:center;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#666;margin-bottom:8px}
+    </style>
+</head>
+<body>
+    <h1>🎬 <span class="sync">Sync Labs</span> Demo</h1>
+    <p class="subtitle">Real video + AI lip sync = magic ✨</p>
+
+    <div class="cards">
+        <div class="compare-label">Profile 1</div>
+        <div class="card" id="card1">
+            <video src="https://kxyqdzkoyuzszcyfvpee.supabase.co/storage/v1/object/public/hotorbot/videos/sync_profile_1.mp4" playsinline webkit-playsinline loop muted autoplay preload="auto"></video>
+            <button class="mute-btn" onclick="toggleMute(this)">🔇</button>
+            <div class="card-info">
+                <div class="card-name">Amanda, 28</div>
+                <div class="card-bio">I build apps by day and hunt for the best street tacos by night 🌮</div>
+                <span class="card-tag">🎬 Sync Labs lip-sync</span>
+            </div>
+        </div>
+
+        <div class="compare-label">Profile 2</div>
+        <div class="card" id="card2">
+            <video src="https://kxyqdzkoyuzszcyfvpee.supabase.co/storage/v1/object/public/hotorbot/videos/sync_profile_2.mp4" playsinline webkit-playsinline loop muted autoplay preload="auto"></video>
+            <button class="mute-btn" onclick="toggleMute(this)">🔇</button>
+            <div class="card-info">
+                <div class="card-name">Amanda, 28</div>
+                <div class="card-bio">Looking for spontaneous adventures and deep conversations 💫</div>
+                <span class="card-tag">🎬 Sync Labs lip-sync</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tech-note">
+        <h3>How it works</h3>
+        <p>
+            <strong>Input:</strong> Your real video clip (7-8 seconds)<br>
+            <strong>+ Audio:</strong> AI voice clone (ElevenLabs)<br>
+            <strong>= Output:</strong> Your real video with lip-synced speech<br><br>
+            Unlike HeyGen (which generates an entirely new video from a photo), Sync Labs only modifies the lip region of your <em>actual footage</em>. Everything else — your real head movements, lighting, expressions — stays untouched.<br><br>
+            <strong>Cost:</strong> $5/mo + $0.05/sec (~$0.35 per 7s clip)<br>
+            <strong>Model:</strong> lipsync-2 (by Wav2Lip founders)
+        </p>
+    </div>
+
+    <script>
+        function toggleMute(btn) {
+            const vid = btn.parentElement.querySelector('video');
+            vid.muted = !vid.muted;
+            btn.textContent = vid.muted ? '🔇' : '🔊';
+        }
+        // Auto-play all videos
+        document.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+    </script>
+</body>
+</html>
