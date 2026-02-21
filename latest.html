@@ -325,24 +325,33 @@
             const resultClass = correct ? 'correct' : 'wrong';
             const resultText = correct ? '✅ You got it!' : '❌ Nope!';
 
+            // Phase 2 result: show answer
             document.getElementById('guessRow').style.display = 'none';
             document.getElementById('revealTitle').innerHTML = `<div class="guess-result ${resultClass}">${resultText}</div><div style="font-size:1.4rem;margin-top:4px">${answer}</div>`;
-            document.getElementById('revealDetail').innerHTML = `<div style="margin-bottom:12px;color:#888;font-size:0.75rem">Score: ${guessCorrect}/${guessTotal}</div>` + `<div style="color:#a5b4fc;font-size:0.7rem;font-weight:bold;margin-bottom:6px">🛠️ HOW THIS WAS MADE</div>` + p.reveal;
+            document.getElementById('revealDetail').innerHTML = `<div style="color:#888;font-size:0.75rem">Score: ${guessCorrect}/${guessTotal}</div>`;
             document.getElementById('revealTap').style.display = 'block';
+            document.getElementById('revealTap').textContent = 'tap to see how it was made →';
 
             const overlay = document.getElementById('revealOverlay');
+            // Tap → Phase 3: tool reveal
             overlay.onclick = function() {
-                overlay.classList.remove('show');
-                overlay.onclick = null;
-                const card = document.getElementById('currentCard');
-                if (card) {
-                    card.id = '';
-                    card.classList.add(pendingHot ? 'exiting-right' : 'exiting-left');
-                    const vid = card.querySelector('video');
-                    if (vid) vid.pause();
-                }
-                current++;
-                setTimeout(renderCard, 300);
+                document.getElementById('revealTitle').innerHTML = '🛠️ HOW IT WAS MADE';
+                document.getElementById('revealDetail').innerHTML = p.reveal;
+                document.getElementById('revealTap').textContent = 'tap to continue →';
+
+                overlay.onclick = function() {
+                    overlay.classList.remove('show');
+                    overlay.onclick = null;
+                    const card = document.getElementById('currentCard');
+                    if (card) {
+                        card.id = '';
+                        card.classList.add(pendingHot ? 'exiting-right' : 'exiting-left');
+                        const vid = card.querySelector('video');
+                        if (vid) vid.pause();
+                    }
+                    current++;
+                    setTimeout(renderCard, 300);
+                };
             };
         }
 
