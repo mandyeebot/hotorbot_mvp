@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HotOrBot — HeyGen vs D-ID Comparison</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Impact&family=Inter:wght@400;600;700;900&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;color:#fff;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+        
+        .logo{font-family:'Impact',sans-serif;font-size:clamp(2rem,8vw,4rem);text-transform:uppercase;line-height:1;margin-bottom:0.5rem}
+        .logo .hot{color:#FF4500;text-shadow:0 0 40px rgba(255,69,0,0.8)}
+        .logo .or{color:#666;font-size:0.5em;vertical-align:middle;margin:0 0.1em}
+        .logo .bot{color:#00BFFF;text-shadow:0 0 40px rgba(0,191,255,0.8)}
+        
+        .subtitle{color:#FFD700;font-weight:700;margin-bottom:2rem;font-size:1.1rem}
+        
+        .compare-grid{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;max-width:900px;width:100%}
+        
+        .card{background:linear-gradient(135deg,#111,#1a1a1a);border:2px solid #333;border-radius:20px;padding:1.5rem;flex:1;min-width:280px;max-width:420px}
+        .card h2{font-family:'Impact',sans-serif;font-size:1.5rem;text-transform:uppercase;margin-bottom:0.5rem;letter-spacing:2px}
+        .card.heygen h2{color:#FF4500}
+        .card.did h2{color:#00BFFF}
+        
+        .card .meta{color:#888;font-size:0.8rem;margin-bottom:1rem}
+        
+        .video-wrap{width:100%;border-radius:12px;overflow:hidden;background:#000;margin-bottom:1rem}
+        .video-wrap video{width:100%;display:block}
+        
+        .stats{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+        .stat-item{background:rgba(255,255,255,0.05);border-radius:8px;padding:0.6rem;text-align:center}
+        .stat-item .val{font-weight:700;font-size:1.1rem;color:#FFD700}
+        .stat-item .lbl{font-size:0.7rem;color:#666;text-transform:uppercase}
+        
+        .notes{margin-top:2rem;max-width:700px;color:#999;font-size:0.85rem;line-height:1.6;text-align:center}
+        .notes strong{color:#ccc}
+    </style>
+</head>
+<body>
+    <div class="logo"><span class="hot">HOT</span><span class="or">or</span><span class="bot">BOT</span></div>
+    <div class="subtitle">🔬 HeyGen vs D-ID — Side by Side</div>
+    
+    <div class="compare-grid">
+        <!-- HeyGen -->
+        <div class="card heygen">
+            <h2>🔥 HeyGen</h2>
+            <div class="meta">Talking Photo API • Photo + Audio → Video</div>
+            <div class="video-wrap">
+                <video controls playsinline preload="auto">
+                    <source src="https://kxyqdzkoyuzszcyfvpee.supabase.co/storage/v1/object/public/hotorbot/videos/amanda_ai_intro_v2.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="stats">
+                <div class="stat-item"><div class="val">720p</div><div class="lbl">Resolution</div></div>
+                <div class="stat-item"><div class="val">~11s</div><div class="lbl">Duration</div></div>
+                <div class="stat-item"><div class="val">$99/mo</div><div class="lbl">API Pro</div></div>
+                <div class="stat-item"><div class="val">~30s</div><div class="lbl">Gen Time</div></div>
+            </div>
+        </div>
+        
+        <!-- D-ID -->
+        <div class="card did">
+            <h2>🤖 D-ID</h2>
+            <div class="meta">Talks API • Photo + Audio → Video</div>
+            <div class="video-wrap">
+                <video controls playsinline preload="auto">
+                    <source src="https://kxyqdzkoyuzszcyfvpee.supabase.co/storage/v1/object/public/hotorbot/videos/amanda_did_intro.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="stats">
+                <div class="stat-item"><div class="val">512p</div><div class="lbl">Resolution</div></div>
+                <div class="stat-item"><div class="val">~4s</div><div class="lbl">Duration</div></div>
+                <div class="stat-item"><div class="val">$5.90/mo</div><div class="lbl">Lite Plan</div></div>
+                <div class="stat-item"><div class="val">~10s</div><div class="lbl">Gen Time</div></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notes">
+        <p><strong>Same inputs:</strong> Amanda's headshot + ElevenLabs voice clone saying "I'm Amanda, I like to go on long grueling walks and also build stuff at night"</p>
+        <p style="margin-top:0.5rem"><strong>Note:</strong> HeyGen video was originally generated with different audio (spiderweb line), then audio-swapped via ffmpeg. D-ID video was generated natively with the correct audio, so lip sync should be more accurate.</p>
+    </div>
+</body>
+</html>
