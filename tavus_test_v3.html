@@ -139,6 +139,11 @@
         }
         #call-topbar .name { font-size: 17px; font-weight: 600; }
         #call-topbar .timer { font-size: 13px; color: #aaa; margin-top: 2px; }
+        #call-topbar .rec-indicator {
+            display: inline-block; font-size: 11px; color: #ff3b30;
+            margin-top: 4px; animation: recBlink 1s ease-in-out infinite;
+        }
+        @keyframes recBlink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 
         /* Connecting overlay */
         #connecting-overlay {
@@ -200,6 +205,7 @@
     <div id="call-topbar">
         <div class="name" id="call-name">Alex</div>
         <div class="timer" id="call-timer">00:00</div>
+        <div class="rec-indicator">🔴 REC — Both sides recording</div>
     </div>
 
     <!-- CONTROLS -->
@@ -217,6 +223,14 @@
         let isMuted = false;
         let isCamOff = false;
         let isStarting = false;
+
+        // Recording state
+        let localRecorder = null;
+        let remoteRecorder = null;
+        let localChunks = [];
+        let remoteChunks = [];
+        let localStream = null;
+        let remoteStream = null;
 
         const PERSONAS = {
             date: { id: 'pccff54d0674', replica: 'r12d3eb75ec2', name: 'Alex', emoji: '💕' },
@@ -300,16 +314,28 @@
                             // Local camera → small PiP
                             if (p.videoTrack) {
                                 const lv = document.getElementById('local-video');
-                                const stream = new MediaStream([p.videoTrack]);
-                                if (lv.srcObject !== stream) lv.srcObject = stream;
+                                localStream = new MediaStream([p.videoTrack]);
+                                if (p.audioTrack) localStream.addTrack(p.audioTrack);
+                                lv.srcObject = localStream;
+                                // Start recording your webcam
+                                if (!localRecorder) {
+                                    const rec = startRecording(localStream, 'you');
+                                    localRecorder = rec.recorder;
+                                }
                             }
                         } else {
                             // Remote (avatar) → full screen
                             if (p.videoTrack) {
                                 const rv = document.getElementById('remote-video');
-                                const stream = new MediaStream([p.videoTrack]);
-                                rv.srcObject = stream;
+                                remoteStream = new MediaStream([p.videoTrack]);
+                                if (p.audioTrack) remoteStream.addTrack(p.audioTrack);
+                                rv.srcObject = remoteStream;
                                 rv.play().catch(() => {});
+                                // Start recording Alex's video
+                                if (!remoteRecorder) {
+                                    const rec = startRecording(remoteStream, 'alex');
+                                    remoteRecorder = rec.recorder;
+                                }
                             }
                             if (p.audioTrack) {
                                 if (!window._remoteAudio) {
@@ -318,6 +344,10 @@
                                 }
                                 window._remoteAudio.srcObject = new MediaStream([p.audioTrack]);
                                 window._remoteAudio.play().catch(() => {});
+                                // Add audio to remote recording stream if not already there
+                                if (remoteStream && !remoteStream.getAudioTracks().length) {
+                                    remoteStream.addTrack(p.audioTrack);
+                                }
                             }
                         }
                     }
@@ -361,7 +391,44 @@
             }
         }
 
+        function startRecording(stream, label) {
+            const chunks = [];
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+                ? 'video/webm;codecs=vp9,opus'
+                : 'video/webm';
+            const recorder = new MediaRecorder(stream, { mimeType });
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+            recorder.onstop = () => {
+                if (chunks.length === 0) return;
+                const blob = new Blob(chunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                a.href = url;
+                a.download = `hotorbot_${label}_${ts}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log(`📹 ${label} recording saved (${(blob.size/1024/1024).toFixed(1)}MB)`);
+            };
+            recorder.start(1000); // collect chunks every second
+            return { recorder, chunks };
+        }
+
+        function stopAllRecordings() {
+            if (localRecorder && localRecorder.state !== 'inactive') {
+                localRecorder.stop();
+                console.log('🛑 Stopped local recording');
+            }
+            if (remoteRecorder && remoteRecorder.state !== 'inactive') {
+                remoteRecorder.stop();
+                console.log('🛑 Stopped remote recording');
+            }
+            localRecorder = null;
+            remoteRecorder = null;
+        }
+
         function cleanupCall() {
+            stopAllRecordings();
             if (callFrame) {
                 try { callFrame.destroy(); } catch(e) {}
                 callFrame = null;
