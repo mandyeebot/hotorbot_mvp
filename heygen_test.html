@@ -8,25 +8,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0a0a;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            background: #0a0a0a; color: #fff; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 20px;
         }
         h1 { font-size: 24px; margin-bottom: 8px; }
         .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
         .badge {
-            background: #1a1a2e;
-            border: 1px solid #333;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            color: #7c6ef6;
-            margin-bottom: 20px;
+            background: #1a1a2e; border: 1px solid #333; padding: 4px 12px;
+            border-radius: 20px; font-size: 11px; color: #7c6ef6; margin-bottom: 20px;
         }
         .config { margin-bottom: 20px; text-align: center; }
         .config-row { margin-bottom: 10px; }
@@ -39,26 +29,27 @@
             background: linear-gradient(135deg, #7c6ef6, #a855f7);
             border: none; color: #fff; font-size: 18px; font-weight: 600;
             padding: 16px 48px; border-radius: 50px; cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 16px;
+            transition: transform 0.2s; margin-bottom: 16px;
         }
-        #start-btn:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(124, 110, 246, 0.4); }
+        #start-btn:hover { transform: scale(1.05); }
         #start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        #status { color: #888; font-size: 13px; margin-bottom: 16px; min-height: 20px; }
+        #status { color: #aaa; font-size: 14px; margin-bottom: 16px; min-height: 20px; text-align: center; }
+        #error-log { color: #f66; font-size: 12px; margin-top: 8px; max-width: 500px; text-align: center; word-break: break-all; }
         #video-container {
-            width: 100%; max-width: 480px; aspect-ratio: 9/16;
-            background: #111; border-radius: 16px; overflow: hidden;
-            display: none; position: relative;
+            width: 100%; max-width: 480px; background: #111;
+            border-radius: 16px; overflow: hidden; display: none; position: relative;
         }
-        #avatar-video { width: 100%; height: 100%; object-fit: cover; }
+        #avatar-video { width: 100%; display: block; }
         .controls {
-            display: none; gap: 12px; margin-top: 16px; align-items: center; flex-wrap: wrap; justify-content: center;
+            display: none; gap: 12px; margin-top: 16px; align-items: center;
+            flex-wrap: wrap; justify-content: center;
         }
         .controls button {
             background: #222; border: 1px solid #444; color: #fff;
             padding: 10px 20px; border-radius: 25px; cursor: pointer; font-size: 14px;
         }
         .controls button:hover { background: #333; }
-        .controls .end-btn:hover { background: #ff4444; border-color: #ff4444; }
+        .end-btn:hover { background: #ff4444 !important; border-color: #ff4444 !important; }
         #chat-input {
             background: #1a1a1a; border: 1px solid #333; color: #fff;
             padding: 10px 16px; border-radius: 25px; font-size: 14px; width: 260px;
@@ -67,12 +58,10 @@
             position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 6px;
             background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 8px; font-size: 12px; z-index: 10;
         }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
-        .dot.listening { background: #0f0; animation: pulse 1s infinite; }
-        .dot.speaking { background: #f0f; animation: pulse 0.5s infinite; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #666; display: inline-block; }
+        .dot.live { background: #0f0; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         .tip { max-width: 500px; text-align: center; color: #555; font-size: 12px; margin-top: 16px; line-height: 1.5; }
-        #error-log { color: #f66; font-size: 12px; margin-top: 10px; max-width: 500px; text-align: center; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -84,177 +73,173 @@
         <div class="config-row">
             <label>Avatar:</label>
             <select id="avatar-select">
-                <option value="default">🤖 Default HeyGen Avatar</option>
-                <option value="amanda">📸 Amanda's Photo Avatar</option>
+                <option value="">🤖 Default Avatar</option>
+                <option value="d8b3833adc7f4aedbb86b284bf1f9eb1">📸 Amanda's Photo</option>
             </select>
         </div>
     </div>
 
     <button id="start-btn">Start Video Date 💕</button>
-    <div id="status"></div>
+    <div id="status">Ready — tap Start to begin</div>
     <div id="error-log"></div>
 
     <div id="video-container">
-        <div class="indicator">
-            <div class="dot" id="state-dot"></div>
-            <span id="state-text">Connecting...</span>
-        </div>
-        <video id="avatar-video" autoplay playsinline></video>
+        <div class="indicator"><div class="dot live" id="dot"></div> <span id="state">Live</span></div>
+        <video id="avatar-video" autoplay playsinline muted></video>
     </div>
 
     <div class="controls" id="controls">
         <input type="text" id="chat-input" placeholder="Type something to say...">
-        <button id="send-btn">Send</button>
+        <button id="send-btn">Send 💬</button>
         <button id="voice-btn">🎙 Start Voice</button>
-        <button class="end-btn" id="end-btn">End Date</button>
+        <button class="end-btn" id="end-btn">End Date ✋</button>
     </div>
 
-    <p class="tip">
-        Click "Start Voice" for hands-free — the avatar hears you and responds.<br>
-        Or type messages and the avatar speaks the AI response.<br>
-    </p>
+    <p class="tip">Type a message and hit Send — the avatar will respond with AI.<br>Or tap "Start Voice" for hands-free conversation.</p>
+
+    <!-- Load SDK dependencies first -->
+    <script>
+        // Fallback: if ES module import fails, show a clear error
+        window.onerror = function(msg, url, line) {
+            document.getElementById('error-log').textContent = 'JS Error: ' + msg;
+            return false;
+        };
+    </script>
 
     <script type="module">
-        import { StreamingAvatar, TaskType, StreamingEvents, AvatarQuality, VoiceEmotion } from 'https://esm.sh/@heygen/streaming-avatar@2';
+        // ---- SDK Import ----
+        let StreamingAvatar, TaskType, StreamingEvents, AvatarQuality, VoiceEmotion;
+        try {
+            const mod = await import('https://esm.sh/@heygen/streaming-avatar@2');
+            StreamingAvatar = mod.StreamingAvatar || mod.default;
+            TaskType = mod.TaskType;
+            StreamingEvents = mod.StreamingEvents;
+            AvatarQuality = mod.AvatarQuality;
+            VoiceEmotion = mod.VoiceEmotion;
+            console.log('✅ HeyGen SDK loaded', Object.keys(mod));
+        } catch (e) {
+            document.getElementById('status').textContent = '❌ SDK failed to load';
+            document.getElementById('error-log').textContent = e.message;
+            console.error('SDK load error:', e);
+            throw e;
+        }
 
+        // ---- Config ----
         const API_KEY = 'sk_V2_hgu_kiKFJG7KJov_9vvKkvT4fFbndbtZvT7kliw6GsHzeEuS';
-        const AMANDA_AVATAR = 'd8b3833adc7f4aedbb86b284bf1f9eb1';
+        const DATE_PROMPT = `You are a fun, charming person on a first video date named Alex. Be warm, curious, flirty. Ask fun questions. Keep responses SHORT (2-3 sentences). React to what they say. Never mention you're AI. Start by introducing yourself.`;
 
-        const DATE_PROMPT = `You are a fun, charming, and flirty person on a first video date. Your name is Alex.
-Be warm, curious, genuinely interested. Ask fun getting-to-know-you questions.
-Flirt lightly — compliments, playful teasing. Keep responses SHORT (2-3 sentences).
-React to what they say. If there's a pause, ask another fun question.
-Never mention you're an AI. Start by introducing yourself warmly.`;
-
+        // ---- State ----
         let avatar = null;
         let voiceActive = false;
 
-        const statusEl = document.getElementById('status');
-        const errorEl = document.getElementById('error-log');
-        const startBtn = document.getElementById('start-btn');
-        const videoEl = document.getElementById('avatar-video');
-        const container = document.getElementById('video-container');
-        const controls = document.getElementById('controls');
+        // ---- Elements ----
+        const $ = id => document.getElementById(id);
+        const statusEl = $('status');
+        const errorEl = $('error-log');
 
-        function log(msg) { statusEl.textContent = msg; console.log(msg); }
-        function logError(msg) { errorEl.textContent = msg; console.error(msg); }
+        function log(msg) { statusEl.textContent = msg; console.log('[heygen]', msg); }
 
-        function updateState(cls, text) {
-            document.getElementById('state-dot').className = 'dot ' + cls;
-            document.getElementById('state-text').textContent = text;
-        }
+        // ---- Mark SDK loaded ----
+        log('✅ Ready — tap Start to begin');
 
-        startBtn.addEventListener('click', async () => {
-            startBtn.disabled = true;
+        // ---- Start ----
+        $('start-btn').addEventListener('click', async () => {
+            $('start-btn').disabled = true;
             errorEl.textContent = '';
-            log('🔄 Getting session token...');
 
             try {
-                // Step 1: Get session token
+                log('🔄 Getting token...');
                 const tokenRes = await fetch('https://api.heygen.com/v1/streaming.create_token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY }
                 });
                 const tokenData = await tokenRes.json();
-                console.log('Token response:', tokenData);
-
-                if (tokenData.error) throw new Error(tokenData.error);
+                console.log('Token:', tokenData);
+                if (tokenData.error) throw new Error('Token error: ' + tokenData.error);
                 const token = tokenData.data?.token;
-                if (!token) throw new Error('No token in response: ' + JSON.stringify(tokenData));
+                if (!token) throw new Error('No token returned');
 
-                log('🎭 Initializing avatar...');
-
-                // Step 2: Create StreamingAvatar
+                log('🎭 Creating avatar session...');
                 avatar = new StreamingAvatar({ token });
 
-                // Step 3: Events
-                avatar.on(StreamingEvents.STREAM_READY, (event) => {
-                    log('✅ Stream ready! Say hi 👋');
-                    if (event.detail) {
-                        videoEl.srcObject = event.detail;
-                        videoEl.play().catch(e => console.log('Autoplay blocked:', e));
+                avatar.on(StreamingEvents.STREAM_READY, (evt) => {
+                    console.log('STREAM_READY', evt);
+                    log('✅ Connected! Type a message or start voice 👋');
+                    const mediaStream = evt.detail;
+                    if (mediaStream) {
+                        const vid = $('avatar-video');
+                        vid.srcObject = mediaStream;
+                        vid.muted = false;
+                        vid.play().catch(e => console.warn('play():', e));
                     }
-                    container.style.display = 'block';
-                    controls.style.display = 'flex';
-                    updateState('listening', 'Ready');
+                    $('video-container').style.display = 'block';
+                    $('controls').style.display = 'flex';
                 });
 
-                avatar.on(StreamingEvents.AVATAR_START_TALKING, () => updateState('speaking', 'Speaking...'));
-                avatar.on(StreamingEvents.AVATAR_STOP_TALKING, () => updateState('listening', 'Listening...'));
-                avatar.on(StreamingEvents.USER_START, () => updateState('listening', 'Hearing you...'));
-                avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => { log('📱 Disconnected'); updateState('', 'Disconnected'); });
+                avatar.on(StreamingEvents.AVATAR_START_TALKING, () => { $('state').textContent = 'Speaking...'; });
+                avatar.on(StreamingEvents.AVATAR_STOP_TALKING, () => { $('state').textContent = 'Listening...'; });
+                avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => { log('Disconnected'); });
 
-                // Step 4: Pick avatar
-                const avatarChoice = document.getElementById('avatar-select').value;
-                const avatarName = avatarChoice === 'amanda' ? AMANDA_AVATAR : undefined;
+                const avatarId = $('avatar-select').value || undefined;
 
-                log('📞 Starting session...');
-
-                // Step 5: Start
+                log('📞 Starting stream...');
                 const session = await avatar.createStartAvatar({
-                    avatarName: avatarName,
+                    avatarName: avatarId,
                     quality: AvatarQuality.High,
                     knowledgeBase: DATE_PROMPT,
-                    voice: { emotion: VoiceEmotion.FRIENDLY, rate: 1.0 },
-                    language: 'en'
+                    voice: { emotion: VoiceEmotion.FRIENDLY },
+                    language: 'en',
                 });
-
-                console.log('Session started:', session);
-                log('🎬 Waiting for stream...');
+                console.log('Session:', session);
+                log('⏳ Waiting for stream...');
 
             } catch (err) {
-                log('❌ Failed');
-                logError(err.message || String(err));
-                startBtn.disabled = false;
-                console.error('Full error:', err);
+                log('❌ Error');
+                errorEl.textContent = err.message || String(err);
+                $('start-btn').disabled = false;
+                console.error('Start error:', err);
             }
         });
 
-        // Send text
-        document.getElementById('send-btn').addEventListener('click', async () => {
+        // ---- Send text ----
+        $('send-btn').addEventListener('click', async () => {
             if (!avatar) return;
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
+            const text = $('chat-input').value.trim();
             if (!text) return;
-            input.value = '';
+            $('chat-input').value = '';
+            log('💬 Sending: ' + text.substring(0, 40) + '...');
             try {
                 await avatar.speak({ text, task_type: TaskType.TALK });
-            } catch (e) { logError('Send error: ' + e.message); }
+            } catch (e) { errorEl.textContent = e.message; }
         });
+        $('chat-input').addEventListener('keypress', e => { if (e.key === 'Enter') $('send-btn').click(); });
 
-        document.getElementById('chat-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') document.getElementById('send-btn').click();
-        });
-
-        // Voice toggle
-        document.getElementById('voice-btn').addEventListener('click', async () => {
+        // ---- Voice ----
+        $('voice-btn').addEventListener('click', async () => {
             if (!avatar) return;
             try {
                 if (!voiceActive) {
                     await avatar.startVoiceChat({ useSilencePrompt: true });
                     voiceActive = true;
-                    document.getElementById('voice-btn').textContent = '🔇 Stop Voice';
-                    log('🎙 Voice chat active — just talk!');
+                    $('voice-btn').textContent = '🔇 Stop Voice';
+                    log('🎙 Voice active — just talk!');
                 } else {
                     await avatar.closeVoiceChat();
                     voiceActive = false;
-                    document.getElementById('voice-btn').textContent = '🎙 Start Voice';
-                    log('Voice chat stopped');
+                    $('voice-btn').textContent = '🎙 Start Voice';
+                    log('Voice stopped');
                 }
-            } catch (e) { logError('Voice error: ' + e.message); }
+            } catch (e) { errorEl.textContent = e.message; }
         });
 
-        // End
-        document.getElementById('end-btn').addEventListener('click', async () => {
-            if (avatar) {
-                try { await avatar.stopAvatar(); } catch (e) {}
-                avatar = null;
-            }
-            container.style.display = 'none';
-            controls.style.display = 'none';
-            startBtn.disabled = false;
+        // ---- End ----
+        $('end-btn').addEventListener('click', async () => {
+            if (avatar) { try { await avatar.stopAvatar(); } catch(e){} avatar = null; }
+            $('video-container').style.display = 'none';
+            $('controls').style.display = 'none';
+            $('start-btn').disabled = false;
             voiceActive = false;
-            document.getElementById('voice-btn').textContent = '🎙 Start Voice';
+            $('voice-btn').textContent = '🎙 Start Voice';
             log('📱 Date ended!');
         });
     </script>
