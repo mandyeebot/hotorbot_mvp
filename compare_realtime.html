@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Date — Platform Comparison</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        h1 { font-size: 28px; margin-bottom: 8px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 40px; }
+        .cards {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 20px;
+            padding: 32px 24px;
+            width: 380px;
+            text-align: left;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: #444; }
+        .card h2 { font-size: 20px; margin-bottom: 6px; }
+        .card .platform { color: #888; font-size: 13px; margin-bottom: 16px; }
+        .card .features { list-style: none; margin-bottom: 20px; }
+        .card .features li {
+            padding: 6px 0;
+            font-size: 14px;
+            color: #ccc;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .card .features li:last-child { border: none; }
+        .card .features .check { color: #0f0; margin-right: 8px; }
+        .card .features .cross { color: #f44; margin-right: 8px; }
+        .card .features .info { color: #ff0; margin-right: 8px; }
+        .card a {
+            display: inline-block;
+            padding: 12px 32px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: transform 0.2s;
+        }
+        .card a:hover { transform: scale(1.05); }
+        .tavus-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            color: #fff;
+        }
+        .heygen-btn {
+            background: linear-gradient(135deg, #7c6ef6, #a855f7);
+            color: #fff;
+        }
+        .price {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .price-note {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        .vs {
+            font-size: 32px;
+            color: #333;
+            align-self: center;
+            padding: 0 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            color: #444;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 Real-Time AI Video Date</h1>
+    <p class="subtitle">Side-by-side comparison: Which platform feels more like FaceTime?</p>
+
+    <div class="cards">
+        <div class="card">
+            <h2>🔥 Tavus</h2>
+            <p class="platform">Conversational Video AI</p>
+            <div class="price">$39/mo</div>
+            <p class="price-note">Starter plan + pay-as-you-go • Free tier available</p>
+            <ul class="features">
+                <li><span class="check">✓</span> Full video call (WebRTC) — sees YOU too</li>
+                <li><span class="check">✓</span> Custom replica from 2-min video of you</li>
+                <li><span class="check">✓</span> Built-in LLM + TTS pipeline</li>
+                <li><span class="check">✓</span> Raven perception model (reads emotions)</li>
+                <li><span class="check">✓</span> Embeddable conversation URL</li>
+                <li><span class="check">✓</span> Conversation recording + transcripts</li>
+                <li><span class="check">✓</span> 30+ languages</li>
+                <li><span class="info">⚡</span> ~500ms end-to-end latency (claimed)</li>
+            </ul>
+            <a href="tavus_test.html?v=1" class="tavus-btn">Test Tavus →</a>
+        </div>
+
+        <div class="card">
+            <h2>💜 HeyGen</h2>
+            <p class="platform">Interactive Avatar (now LiveAvatar)</p>
+            <div class="price">$99/mo</div>
+            <p class="price-note">API Pro plan (we already have this!)</p>
+            <ul class="features">
+                <li><span class="check">✓</span> Works with YOUR photo avatar</li>
+                <li><span class="check">✓</span> Voice chat mode (hears you + responds)</li>
+                <li><span class="check">✓</span> Text chat mode (type → avatar speaks)</li>
+                <li><span class="check">✓</span> GPT-4o mini powers responses</li>
+                <li><span class="check">✓</span> Custom knowledge base / system prompt</li>
+                <li><span class="check">✓</span> Emotion control (friendly, excited, etc.)</li>
+                <li><span class="cross">✗</span> Avatar can't see you (audio only input)</li>
+                <li><span class="info">⚡</span> ~1-2s latency typical</li>
+            </ul>
+            <a href="heygen_test.html?v=1" class="heygen-btn">Test HeyGen →</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>HotOrBot — AI Video Dating Platform Comparison</p>
+        <p style="margin-top: 8px;">Key difference: Tavus SEES you (full 2-way video). HeyGen only HEARS you (1-way video + 2-way audio).</p>
+    </div>
+</body>
+</html>

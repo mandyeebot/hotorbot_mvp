@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Date — HeyGen Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        h1 { font-size: 24px; margin-bottom: 8px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+        .badge {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #7c6ef6;
+            margin-bottom: 20px;
+        }
+        .config {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .config-row { margin-bottom: 10px; }
+        .config label { color: #aaa; font-size: 13px; margin-right: 8px; }
+        .config input, .config select {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            width: 320px;
+        }
+        #start-btn {
+            background: linear-gradient(135deg, #7c6ef6, #a855f7);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 16px 48px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 16px;
+        }
+        #start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(124, 110, 246, 0.4);
+        }
+        #start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        #status { color: #888; font-size: 13px; margin-bottom: 16px; min-height: 20px; }
+        #video-container {
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 9/16;
+            background: #111;
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+        #avatar-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .controls {
+            display: none;
+            gap: 12px;
+            margin-top: 16px;
+            align-items: center;
+        }
+        .controls button {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover { background: #333; }
+        .controls .end-btn:hover { background: #ff4444; border-color: #ff4444; }
+        #chat-input {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            width: 260px;
+        }
+        .indicator {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10;
+        }
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .dot.listening { background: #0f0; animation: pulse 1s infinite; }
+        .dot.speaking { background: #f0f; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .tip {
+            max-width: 500px;
+            text-align: center;
+            color: #555;
+            font-size: 12px;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .mode-toggle button {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .mode-toggle button.active {
+            background: #7c6ef6;
+            border-color: #7c6ef6;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 AI Video Date — HeyGen</h1>
+    <p class="subtitle">Real-time conversation with your photo avatar</p>
+    <div class="badge">Powered by HeyGen Interactive Avatar + GPT-4o</div>
+
+    <div class="config">
+        <div class="config-row">
+            <label>HeyGen API Key:</label>
+            <input type="password" id="api-key" placeholder="Paste your HeyGen API key (sk_...)">
+        </div>
+        <div class="config-row">
+            <label>Avatar:</label>
+            <select id="avatar-select">
+                <option value="Amanda_Photo">📸 Amanda's Photo Avatar</option>
+                <option value="default">🤖 Default HeyGen Avatar</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mode-toggle">
+        <button class="active" onclick="setMode('voice')" id="mode-voice">🎙 Voice Chat</button>
+        <button onclick="setMode('text')" id="mode-text">⌨️ Text Chat</button>
+    </div>
+
+    <button id="start-btn" onclick="startDate()">Start Video Date 💕</button>
+    <div id="status"></div>
+
+    <div id="video-container">
+        <div class="indicator">
+            <div class="dot" id="state-dot"></div>
+            <span id="state-text">Connecting...</span>
+        </div>
+        <video id="avatar-video" autoplay playsinline></video>
+    </div>
+
+    <div class="controls" id="controls">
+        <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendText()">
+        <button onclick="sendText()">Send</button>
+        <button onclick="toggleMic()" id="mic-btn">🎙 Mic On</button>
+        <button class="end-btn" onclick="endDate()">End Date</button>
+    </div>
+
+    <p class="tip">
+        Voice mode: just talk naturally — the avatar hears you and responds.<br>
+        Text mode: type messages and the avatar speaks the response.<br>
+        Uses your photo avatar with GPT-4o for conversation.
+    </p>
+
+    <!-- HeyGen Streaming Avatar SDK -->
+    <script type="module">
+        // Import from CDN
+        import { StreamingAvatar, TaskType, StreamingEvents, AvatarQuality, VoiceEmotion } from 'https://esm.sh/@heygen/streaming-avatar';
+
+        let avatar = null;
+        let sessionData = null;
+        let currentMode = 'voice';
+        let micOn = true;
+
+        // Amanda's photo avatar ID from HeyGen
+        const AMANDA_AVATAR_ID = 'd8b3833adc7f4aedbb86b284bf1f9eb1';
+
+        const DATE_KNOWLEDGE_BASE = `You are a fun, charming, and flirty person on a first video date. Your name is Alex.
+
+Rules:
+- Be warm, curious, and genuinely interested in the person you're talking to
+- Ask fun "getting to know you" questions — favorites, dreams, funny stories
+- Flirt lightly and naturally — compliments, playful teasing
+- Keep responses SHORT (2-3 sentences max) — this is a real-time conversation
+- React to what they say — show surprise, enthusiasm, humor
+- If there's a pause, ask another fun question
+- Be confident but not cocky, interested but not interrogating
+- Start by warmly introducing yourself and asking their name`;
+
+        window.setMode = function(mode) {
+            currentMode = mode;
+            document.getElementById('mode-voice').classList.toggle('active', mode === 'voice');
+            document.getElementById('mode-text').classList.toggle('active', mode === 'text');
+            document.getElementById('chat-input').style.display = mode === 'text' ? 'block' : 'none';
+        };
+
+        window.toggleMic = async function() {
+            if (!avatar) return;
+            micOn = !micOn;
+            document.getElementById('mic-btn').textContent = micOn ? '🎙 Mic On' : '🔇 Mic Off';
+            // The SDK handles mic through voice chat
+        };
+
+        window.sendText = async function() {
+            if (!avatar) return;
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+
+            try {
+                await avatar.speak({
+                    text: text,
+                    task_type: TaskType.TALK  // GPT-4o processes and responds
+                });
+            } catch (e) {
+                console.error('Speak error:', e);
+            }
+        };
+
+        window.startDate = async function() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            if (!apiKey) {
+                document.getElementById('status').textContent = '⚠️ Paste your HeyGen API key first';
+                return;
+            }
+
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            document.getElementById('status').textContent = '🔄 Getting session token...';
+
+            try {
+                // Step 1: Get session token from HeyGen API
+                const tokenRes = await fetch('https://api.heygen.com/v1/streaming.create_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey
+                    }
+                });
+                const tokenData = await tokenRes.json();
+
+                if (tokenData.code && tokenData.code !== 100) {
+                    throw new Error(tokenData.message || 'Failed to get token — check your API key');
+                }
+
+                const token = tokenData.data?.token || tokenData.token;
+                if (!token) throw new Error('No token returned — API key may be invalid or expired');
+
+                document.getElementById('status').textContent = '🎭 Starting avatar session...';
+
+                // Step 2: Initialize StreamingAvatar
+                avatar = new StreamingAvatar({ token });
+
+                // Step 3: Set up event listeners
+                avatar.on(StreamingEvents.STREAM_READY, (event) => {
+                    console.log('Stream ready!', event);
+                    const video = document.getElementById('avatar-video');
+                    if (event.detail) {
+                        video.srcObject = event.detail;
+                    }
+                    document.getElementById('video-container').style.display = 'block';
+                    document.getElementById('controls').style.display = 'flex';
+                    document.getElementById('status').textContent = '✅ Connected! Say hi 👋';
+                    updateState('ready', 'Ready');
+                });
+
+                avatar.on(StreamingEvents.AVATAR_START_TALKING, () => {
+                    updateState('speaking', 'Speaking...');
+                });
+
+                avatar.on(StreamingEvents.AVATAR_STOP_TALKING, () => {
+                    updateState('listening', 'Listening...');
+                });
+
+                avatar.on(StreamingEvents.USER_START, () => {
+                    updateState('listening', 'Hearing you...');
+                });
+
+                avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
+                    document.getElementById('status').textContent = '📱 Stream disconnected';
+                    updateState('off', 'Disconnected');
+                });
+
+                // Step 4: Determine avatar
+                const avatarChoice = document.getElementById('avatar-select').value;
+                const avatarName = avatarChoice === 'Amanda_Photo' ? AMANDA_AVATAR_ID : undefined;
+
+                // Step 5: Start session
+                sessionData = await avatar.createStartAvatar({
+                    avatarName: avatarName,
+                    quality: AvatarQuality.High,
+                    knowledgeBase: DATE_KNOWLEDGE_BASE,
+                    voice: {
+                        emotion: VoiceEmotion.FRIENDLY,
+                        rate: 1.0
+                    },
+                    language: 'en'
+                });
+
+                console.log('Session started:', sessionData);
+
+                // Step 6: Start voice chat if in voice mode
+                if (currentMode === 'voice') {
+                    await avatar.startVoiceChat({ useSilencePrompt: true });
+                    document.getElementById('status').textContent = '🎙 Voice chat active — just talk!';
+                }
+
+            } catch (err) {
+                console.error('Start error:', err);
+                document.getElementById('status').textContent = '❌ ' + err.message;
+                btn.disabled = false;
+            }
+        };
+
+        window.endDate = async function() {
+            if (avatar) {
+                try {
+                    await avatar.stopAvatar();
+                } catch (e) { console.log('Stop error:', e); }
+                avatar = null;
+            }
+            document.getElementById('video-container').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('status').textContent = '📱 Date ended! How was the latency?';
+        };
+
+        function updateState(state, text) {
+            const dot = document.getElementById('state-dot');
+            const stateText = document.getElementById('state-text');
+            dot.className = 'dot ' + (state === 'listening' ? 'listening' : state === 'speaking' ? 'speaking' : '');
+            stateText.textContent = text;
+        }
+    </script>
+</body>
+</html>
