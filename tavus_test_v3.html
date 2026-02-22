@@ -277,28 +277,40 @@
                 // Use Daily SDK for full control
                 callFrame = window.DailyIframe.createCallObject();
 
-                // When remote participant's video starts, show it full screen
-                callFrame.on('track-started', (event) => {
-                    if (event.participant && !event.participant.local && event.track.kind === 'video') {
-                        const remoteVideo = document.getElementById('remote-video');
-                        const stream = new MediaStream([event.track]);
-                        remoteVideo.srcObject = stream;
+                // Attach video/audio tracks as they arrive
+                function attachTracks() {
+                    const participants = callFrame.participants();
+                    for (const [id, p] of Object.entries(participants)) {
+                        if (p.local) {
+                            // Local camera → small PiP
+                            if (p.videoTrack) {
+                                const lv = document.getElementById('local-video');
+                                const stream = new MediaStream([p.videoTrack]);
+                                if (lv.srcObject !== stream) lv.srcObject = stream;
+                            }
+                        } else {
+                            // Remote (avatar) → full screen
+                            if (p.videoTrack) {
+                                const rv = document.getElementById('remote-video');
+                                const stream = new MediaStream([p.videoTrack]);
+                                rv.srcObject = stream;
+                                rv.play().catch(() => {});
+                            }
+                            if (p.audioTrack) {
+                                if (!window._remoteAudio) {
+                                    window._remoteAudio = new Audio();
+                                    window._remoteAudio.autoplay = true;
+                                }
+                                window._remoteAudio.srcObject = new MediaStream([p.audioTrack]);
+                                window._remoteAudio.play().catch(() => {});
+                            }
+                        }
                     }
-                    if (event.participant && event.participant.local && event.track.kind === 'video') {
-                        const localVideo = document.getElementById('local-video');
-                        const stream = new MediaStream([event.track]);
-                        localVideo.srcObject = stream;
-                    }
-                });
+                }
 
-                // Also handle audio
-                callFrame.on('track-started', (event) => {
-                    if (event.participant && !event.participant.local && event.track.kind === 'audio') {
-                        const audio = new Audio();
-                        audio.srcObject = new MediaStream([event.track]);
-                        audio.play();
-                    }
-                });
+                callFrame.on('track-started', attachTracks);
+                callFrame.on('participant-joined', attachTracks);
+                callFrame.on('participant-updated', attachTracks);
 
                 callFrame.on('joined-meeting', () => {
                     document.getElementById('connecting-overlay').style.display = 'none';
