@@ -69,26 +69,18 @@
 
         #call-screen {
             display: none;
-            position: fixed;
-            top: 0; left: 0;
+            position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh; height: 100dvh;
-            background: #000;
-            z-index: 50;
-            overflow: hidden;
+            background: #000; z-index: 50; overflow: hidden;
         }
         #remote-video {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; object-fit: cover;
         }
         #local-video {
-            position: fixed;
-            top: 60px; right: 12px;
-            width: 110px; height: 155px;
-            border-radius: 16px;
-            object-fit: cover;
-            transform: scaleX(-1);
+            position: fixed; top: 60px; right: 12px;
+            width: 110px; height: 155px; border-radius: 16px;
+            object-fit: cover; transform: scaleX(-1);
             z-index: 100;
             border: 2px solid rgba(255,255,255,0.2);
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
@@ -98,8 +90,7 @@
         #call-controls {
             display: none;
             position: fixed; bottom: 0; left: 0; right: 0;
-            z-index: 100;
-            padding: 20px 0 40px;
+            z-index: 100; padding: 20px 0 40px;
             background: linear-gradient(transparent, rgba(0,0,0,0.8));
             justify-content: center; gap: 24px;
         }
@@ -124,8 +115,7 @@
         #call-topbar {
             display: none;
             position: fixed; top: 0; left: 0; right: 0;
-            z-index: 100;
-            padding: 16px 20px;
+            z-index: 100; padding: 16px 20px;
             background: linear-gradient(rgba(0,0,0,0.6), transparent);
             text-align: center;
         }
@@ -150,14 +140,35 @@
             width: 100px; height: 100px; border-radius: 50%;
             background: linear-gradient(135deg, #ff6b6b, #ff8e53);
             display: flex; align-items: center; justify-content: center;
-            font-size: 40px;
-            animation: pulse 1.5s ease-in-out infinite;
+            font-size: 40px; animation: pulse 1.5s ease-in-out infinite;
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,107,0.4); }
             50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255,107,107,0); }
         }
         #connecting-text { margin-top: 24px; font-size: 17px; color: #ccc; }
+
+        /* Upload overlay */
+        #upload-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92); z-index: 300;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .upload-title { font-size: 22px; font-weight: 600; margin-bottom: 24px; }
+        .upload-item {
+            width: 80%; max-width: 360px; margin-bottom: 20px;
+        }
+        .upload-item .label { font-size: 13px; color: #aaa; margin-bottom: 6px; }
+        .upload-item .bar-bg {
+            height: 8px; background: #333; border-radius: 4px; overflow: hidden;
+        }
+        .upload-item .bar-fill {
+            height: 100%; background: #34c759; border-radius: 4px;
+            transition: width 0.3s ease; width: 0%;
+        }
+        .upload-item .pct { font-size: 12px; color: #888; margin-top: 4px; text-align: right; }
+        .upload-status { font-size: 14px; color: #aaa; margin-top: 16px; }
     </style>
 </head>
 <body>
@@ -206,77 +217,36 @@
         <button class="ctrl-btn ctrl-camera" id="cam-btn" onclick="toggleCam()">📷</button>
     </div>
 
+    <div id="upload-overlay">
+        <div class="upload-title">📤 Uploading recordings...</div>
+        <div class="upload-item" id="upload-local">
+            <div class="label">Your webcam video</div>
+            <div class="bar-bg"><div class="bar-fill" id="bar-local"></div></div>
+            <div class="pct" id="pct-local">0%</div>
+        </div>
+        <div class="upload-item" id="upload-remote">
+            <div class="label">AI Interviewer video</div>
+            <div class="bar-bg"><div class="bar-fill" id="bar-remote"></div></div>
+            <div class="pct" id="pct-remote">0%</div>
+        </div>
+        <div class="upload-status" id="upload-status">Preparing files...</div>
+    </div>
+
     <script>
-        // Supabase config
+        // ===== CONFIG =====
         const SUPABASE_URL = 'https://kxyqdzkoyuzszcyfvpee.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4eXFkemtveXV6c3pjeWZ2cGVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MTIwNTAsImV4cCI6MjA3OTM4ODA1MH0.Ewj9y9Bdv96Z0e_HkoY0fUjDdl1euHOKWJIoB0XMSLg';
         const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4eXFkemtveXV6c3pjeWZ2cGVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzgxMjA1MCwiZXhwIjoyMDc5Mzg4MDUwfQ.Gky5cQAN-oNfwL2pTxp6oTeaRKb6iFlT0st3JOUj6wA';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4eXFkemtveXV6c3pjeWZ2cGVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MTIwNTAsImV4cCI6MjA3OTM4ODA1MH0.Ewj9y9Bdv96Z0e_HkoY0fUjDdl1euHOKWJIoB0XMSLg';
         const STORAGE_BUCKET = 'hotorbot-videos';
         const AMANDA_USER_ID = 'a0000000-0000-0000-0000-000000000001';
 
         const SESSION_UUID = crypto.randomUUID();
-        const CALL_DURATION = 150; // 2:30 in seconds
-        let uploadsPending = 0;
-        let uploadsComplete = 0;
-
-        async function uploadToSupabase(blob, filename, videoType) {
-            const statusEl = document.getElementById('status');
-            uploadsPending++;
-            statusEl.textContent = `☁️ Uploading recordings... (${uploadsComplete}/${uploadsPending})`;
-            statusEl.style.color = '#aaa';
-            try {
-                // Upload to storage
-                const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${filename}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                        'Content-Type': 'video/webm'
-                    },
-                    body: blob
-                });
-                if (!uploadRes.ok) throw new Error(`Storage upload failed: ${uploadRes.status}`);
-
-                // Insert DB row
-                const elapsedSeconds = CALL_DURATION - remainingSeconds;
-                const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/hotorbot_user_videos`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                        'apikey': SUPABASE_SERVICE_KEY,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        user_id: AMANDA_USER_ID,
-                        session_id: SESSION_UUID,
-                        video_type: videoType,
-                        storage_path: `${STORAGE_BUCKET}/${filename}`,
-                        storage_url: `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${filename}`,
-                        duration_seconds: elapsedSeconds,
-                        file_size_bytes: blob.size,
-                        is_internal_test: true
-                    })
-                });
-                if (!dbRes.ok) throw new Error(`DB insert failed: ${dbRes.status}`);
-
-                uploadsComplete++;
-                if (uploadsComplete >= uploadsPending) {
-                    statusEl.textContent = '✅ Uploaded! Recordings saved to cloud.';
-                    statusEl.style.color = '#34c759';
-                } else {
-                    statusEl.textContent = `☁️ Uploading recordings... (${uploadsComplete}/${uploadsPending})`;
-                }
-                console.log(`☁️ Uploaded ${filename} to Supabase`);
-            } catch (err) {
-                console.error('Upload failed:', err);
-                statusEl.textContent = `❌ Upload failed: ${err.message}`;
-                statusEl.style.color = '#ff4444';
-            }
-        }
+        const CALL_DURATION = 150; // 2:30
 
         let callFrame = null;
         let countdownInterval = null;
         let remainingSeconds = CALL_DURATION;
+        let actualDuration = 0;
         let isMuted = false;
         let isCamOff = false;
         let isStarting = false;
@@ -285,6 +255,8 @@
         let remoteRecorder = null;
         let localStream = null;
         let remoteStream = null;
+        let localBlob = null;
+        let remoteBlob = null;
 
         const PERSONAS = {
             date: { id: 'pccff54d0674', replica: 'r12d3eb75ec2', name: 'Alex', emoji: '💕' },
@@ -294,9 +266,7 @@
 
         const CUSTOM_GREETING = "Hey! Welcome to HotOrBot! I'm so excited to meet you. So we create an AI version of you for the app, so people can video date your avatar before meeting the real you. Can you tell me a little about yourself — what do you do, what are you passionate about, what are you looking for?";
 
-        function toggleConfig() {
-            document.getElementById('config-panel').classList.toggle('open');
-        }
+        function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
 
         document.getElementById('persona-select').addEventListener('change', (e) => {
             const p = PERSONAS[e.target.value];
@@ -307,42 +277,135 @@
 
         function updateCountdown() {
             remainingSeconds--;
+            actualDuration++;
             const min = Math.floor(remainingSeconds / 60);
             const sec = remainingSeconds % 60;
             document.getElementById('countdown').textContent = `${min}:${String(sec).padStart(2, '0')}`;
-            if (remainingSeconds <= 0) {
-                endDate();
-            }
+            if (remainingSeconds <= 0) endDate();
             if (remainingSeconds <= 10) {
                 document.getElementById('countdown').style.color = '#ff0000';
                 document.getElementById('countdown').style.fontSize = '36px';
             }
         }
 
-        function startRecording(stream, filename) {
+        function createRecorder(stream) {
             const chunks = [];
             const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
                 ? 'video/webm;codecs=vp9,opus' : 'video/webm';
             const recorder = new MediaRecorder(stream, { mimeType });
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-            recorder.onstop = () => {
-                if (chunks.length === 0) return;
-                const blob = new Blob(chunks, { type: mimeType });
-                // Local download backup
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-                console.log(`📹 ${filename} saved (${(blob.size/1024/1024).toFixed(1)}MB)`);
-                // Upload to Supabase
-                const videoType = filename.includes('training') ? 'training' : 'ai_interviewer';
-                uploadToSupabase(blob, filename, videoType);
-            };
+            const blobPromise = new Promise(resolve => {
+                recorder.onstop = () => {
+                    const blob = chunks.length > 0 ? new Blob(chunks, { type: mimeType }) : null;
+                    resolve(blob);
+                };
+            });
             recorder.start(1000);
-            return recorder;
+            return { recorder, blobPromise };
         }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function uploadToSupabase(blob, storagePath, barId, pctId) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`, true);
+                xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_KEY}`);
+                xhr.setRequestHeader('Content-Type', 'video/webm');
+                xhr.setRequestHeader('x-upsert', 'true');
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        document.getElementById(barId).style.width = pct + '%';
+                        document.getElementById(pctId).textContent = pct + '%';
+                    }
+                };
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        document.getElementById(barId).style.width = '100%';
+                        document.getElementById(pctId).textContent = '✅ Done';
+                        resolve();
+                    } else {
+                        document.getElementById(pctId).textContent = '❌ Failed';
+                        reject(new Error(`Upload failed: ${xhr.status}`));
+                    }
+                };
+                xhr.onerror = () => {
+                    document.getElementById(pctId).textContent = '❌ Error';
+                    reject(new Error('Upload network error'));
+                };
+                xhr.send(blob);
+            });
+        }
+
+        async function logToDatabase(videoType, storagePath, fileSize) {
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${storagePath}`;
+            await fetch(`${SUPABASE_URL}/rest/v1/hotorbot_user_videos`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    user_id: AMANDA_USER_ID,
+                    session_id: SESSION_UUID,
+                    video_type: videoType,
+                    storage_path: storagePath,
+                    storage_url: publicUrl,
+                    duration_seconds: actualDuration,
+                    file_size_bytes: fileSize,
+                    is_internal_test: true
+                })
+            });
+        }
+
+        async function handleUploads() {
+            document.getElementById('upload-overlay').style.display = 'flex';
+            document.getElementById('upload-status').textContent = 'Uploading...';
+
+            const localPath = `${SESSION_UUID}_trainingvideo.webm`;
+            const remotePath = `AI_Interviewer_Alex_RecordedVideo.webm`;
+
+            const uploads = [];
+
+            if (localBlob) {
+                downloadBlob(localBlob, localPath);
+                uploads.push(
+                    uploadToSupabase(localBlob, localPath, 'bar-local', 'pct-local')
+                        .then(() => logToDatabase('training', localPath, localBlob.size))
+                        .catch(e => console.error('Local upload failed:', e))
+                );
+            } else {
+                document.getElementById('pct-local').textContent = '⚠️ No data';
+            }
+
+            if (remoteBlob) {
+                downloadBlob(remoteBlob, remotePath);
+                uploads.push(
+                    uploadToSupabase(remoteBlob, remotePath, 'bar-remote', 'pct-remote')
+                        .then(() => logToDatabase('ai_interviewer', remotePath, remoteBlob.size))
+                        .catch(e => console.error('Remote upload failed:', e))
+                );
+            } else {
+                document.getElementById('pct-remote').textContent = '⚠️ No data';
+            }
+
+            await Promise.allSettled(uploads);
+            document.getElementById('upload-status').textContent = '✅ All uploads complete!';
+            await new Promise(r => setTimeout(r, 2000));
+            document.getElementById('upload-overlay').style.display = 'none';
+        }
+
+        let localBlobPromise = null;
+        let remoteBlobPromise = null;
 
         async function startDate() {
             if (isStarting) return;
@@ -382,10 +445,7 @@
                     body: JSON.stringify(body)
                 });
                 const data = await res.json();
-
-                if (!data.conversation_url) {
-                    throw new Error(data.message || JSON.stringify(data));
-                }
+                if (!data.conversation_url) throw new Error(data.message || JSON.stringify(data));
 
                 callFrame = window.DailyIframe.createCallObject();
 
@@ -399,7 +459,9 @@
                                 if (p.audioTrack) localStream.addTrack(p.audioTrack);
                                 lv.srcObject = localStream;
                                 if (!localRecorder) {
-                                    localRecorder = startRecording(localStream, `${SESSION_UUID}_trainingvideo.webm`);
+                                    const rec = createRecorder(localStream);
+                                    localRecorder = rec.recorder;
+                                    localBlobPromise = rec.blobPromise;
                                 }
                             }
                         } else {
@@ -410,7 +472,9 @@
                                 rv.srcObject = remoteStream;
                                 rv.play().catch(() => {});
                                 if (!remoteRecorder) {
-                                    remoteRecorder = startRecording(remoteStream, 'AI_Interviewer_Alex_RecordedVideo.webm');
+                                    const rec = createRecorder(remoteStream);
+                                    remoteRecorder = rec.recorder;
+                                    remoteBlobPromise = rec.blobPromise;
                                 }
                             }
                             if (p.audioTrack) {
@@ -439,6 +503,7 @@
                     document.getElementById('call-topbar').style.display = 'block';
                     document.getElementById('call-controls').style.display = 'flex';
                     remainingSeconds = CALL_DURATION;
+                    actualDuration = 0;
                     countdownInterval = setInterval(updateCountdown, 1000);
                 });
 
@@ -461,15 +526,18 @@
             }
         }
 
-        function stopAllRecordings() {
+        async function stopAllRecordings() {
             if (localRecorder && localRecorder.state !== 'inactive') localRecorder.stop();
             if (remoteRecorder && remoteRecorder.state !== 'inactive') remoteRecorder.stop();
+            // Wait for blobs
+            if (localBlobPromise) localBlob = await localBlobPromise;
+            if (remoteBlobPromise) remoteBlob = await remoteBlobPromise;
             localRecorder = null;
             remoteRecorder = null;
         }
 
-        function cleanupCall() {
-            stopAllRecordings();
+        async function cleanupCall() {
+            await stopAllRecordings();
             if (callFrame) { try { callFrame.destroy(); } catch(e) {} callFrame = null; }
             if (countdownInterval) clearInterval(countdownInterval);
             document.getElementById('call-screen').style.display = 'none';
@@ -477,16 +545,20 @@
             document.getElementById('call-controls').style.display = 'none';
             document.getElementById('remote-video').srcObject = null;
             document.getElementById('local-video').srcObject = null;
+
+            // Upload then show pre-call
+            await handleUploads();
+
             document.getElementById('pre-call').style.display = 'flex';
             document.getElementById('start-btn').disabled = false;
-            document.getElementById('status').textContent = '✅ Test complete — recordings downloading';
+            document.getElementById('status').textContent = '✅ Test complete — recordings saved';
             document.getElementById('status').style.color = '#34c759';
             isStarting = false;
         }
 
         async function endDate() {
             if (callFrame) await callFrame.leave();
-            cleanupCall();
+            else await cleanupCall();
         }
 
         function toggleMute() {
@@ -524,23 +596,18 @@
             el.addEventListener('touchmove', (e) => {
                 const t = e.touches[0];
                 el.style.left = (startLeft + t.clientX - startX) + 'px';
-                el.style.top = (startTop + t.clientY - startY) + 'px';
-                el.style.right = 'auto';
+                el.style.top = (startTop + t.clientY - startY) + 'px'; el.style.right = 'auto';
             }, { passive: true });
             el.addEventListener('touchend', () => {
                 el.style.transition = 'all 0.3s ease';
                 const rect = el.getBoundingClientRect();
                 const snapRight = (rect.left + rect.width / 2) > window.innerWidth / 2;
-                el.style.left = snapRight ? 'auto' : '12px';
-                el.style.right = snapRight ? '12px' : 'auto';
+                el.style.left = snapRight ? 'auto' : '12px'; el.style.right = snapRight ? '12px' : 'auto';
             });
             el.addEventListener('mousedown', (e) => {
                 startX = e.clientX; startY = e.clientY;
                 startLeft = el.offsetLeft; startTop = el.offsetTop; el.style.transition = 'none';
-                const move = (ev) => {
-                    el.style.left = (startLeft + ev.clientX - startX) + 'px';
-                    el.style.top = (startTop + ev.clientY - startY) + 'px'; el.style.right = 'auto';
-                };
+                const move = (ev) => { el.style.left = (startLeft + ev.clientX - startX) + 'px'; el.style.top = (startTop + ev.clientY - startY) + 'px'; el.style.right = 'auto'; };
                 const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); el.style.transition = 'all 0.3s ease'; };
                 document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
             });
