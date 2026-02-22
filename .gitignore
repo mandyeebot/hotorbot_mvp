@@ -2,3 +2,7 @@ assets/*.mp4
 assets/*.mp3
 assets/*.m4a
 assets/gfpgan_frames/
+assets/gfpgan_batch.sh
+assets/gfpgan_process.py
+assets/gfpgan_test_input.jpg
+assets/gfpgan_test_output.png
