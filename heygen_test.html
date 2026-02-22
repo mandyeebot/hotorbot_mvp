@@ -29,12 +29,14 @@
             background: linear-gradient(135deg, #7c6ef6, #a855f7);
             border: none; color: #fff; font-size: 18px; font-weight: 600;
             padding: 16px 48px; border-radius: 50px; cursor: pointer;
-            transition: transform 0.2s; margin-bottom: 16px;
+            -webkit-tap-highlight-color: rgba(124,110,246,0.3);
+            touch-action: manipulation;
+            margin-bottom: 16px;
         }
-        #start-btn:hover { transform: scale(1.05); }
-        #start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        #status { color: #aaa; font-size: 14px; margin-bottom: 16px; min-height: 20px; text-align: center; }
-        #error-log { color: #f66; font-size: 12px; margin-top: 8px; max-width: 500px; text-align: center; word-break: break-all; }
+        #start-btn:active { transform: scale(0.95); }
+        #start-btn.disabled { opacity: 0.5; pointer-events: none; }
+        #status { color: #aaa; font-size: 14px; margin-bottom: 8px; min-height: 20px; text-align: center; max-width: 400px; }
+        #error-log { color: #f66; font-size: 12px; margin-bottom: 16px; max-width: 500px; text-align: center; word-break: break-all; min-height: 16px; }
         #video-container {
             width: 100%; max-width: 480px; background: #111;
             border-radius: 16px; overflow: hidden; display: none; position: relative;
@@ -47,19 +49,14 @@
         .controls button {
             background: #222; border: 1px solid #444; color: #fff;
             padding: 10px 20px; border-radius: 25px; cursor: pointer; font-size: 14px;
+            touch-action: manipulation;
         }
-        .controls button:hover { background: #333; }
-        .end-btn:hover { background: #ff4444 !important; border-color: #ff4444 !important; }
+        .end-btn:active { background: #ff4444 !important; }
         #chat-input {
             background: #1a1a1a; border: 1px solid #333; color: #fff;
             padding: 10px 16px; border-radius: 25px; font-size: 14px; width: 260px;
         }
-        .indicator {
-            position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 6px;
-            background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 8px; font-size: 12px; z-index: 10;
-        }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #666; display: inline-block; }
-        .dot.live { background: #0f0; animation: pulse 1s infinite; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #0f0; display: inline-block; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         .tip { max-width: 500px; text-align: center; color: #555; font-size: 12px; margin-top: 16px; line-height: 1.5; }
     </style>
@@ -80,168 +77,262 @@
     </div>
 
     <button id="start-btn">Start Video Date 💕</button>
-    <div id="status">Ready — tap Start to begin</div>
+    <div id="status">Tap Start to begin</div>
     <div id="error-log"></div>
 
     <div id="video-container">
-        <div class="indicator"><div class="dot live" id="dot"></div> <span id="state">Live</span></div>
-        <video id="avatar-video" autoplay playsinline muted></video>
+        <video id="avatar-video" autoplay playsinline></video>
     </div>
 
     <div class="controls" id="controls">
         <input type="text" id="chat-input" placeholder="Type something to say...">
         <button id="send-btn">Send 💬</button>
-        <button id="voice-btn">🎙 Start Voice</button>
-        <button class="end-btn" id="end-btn">End Date ✋</button>
+        <button id="voice-btn">🎙 Voice</button>
+        <button class="end-btn" id="end-btn">End ✋</button>
     </div>
 
-    <p class="tip">Type a message and hit Send — the avatar will respond with AI.<br>Or tap "Start Voice" for hands-free conversation.</p>
+    <p class="tip">Type a message and Send — the avatar speaks the AI response.<br>Or tap Voice for hands-free.</p>
 
-    <!-- Load SDK dependencies first -->
+    <!-- NO SDK — pure vanilla JS -->
     <script>
-        // Fallback: if ES module import fails, show a clear error
-        window.onerror = function(msg, url, line) {
-            document.getElementById('error-log').textContent = 'JS Error: ' + msg;
-            return false;
-        };
-    </script>
+        (function() {
+            var API_KEY = 'sk_V2_hgu_kiKFJG7KJov_9vvKkvT4fFbndbtZvT7kliw6GsHzeEuS';
+            var DATE_PROMPT = 'You are a fun, charming person on a first video date named Alex. Be warm, curious, flirty. Ask fun questions. Keep responses SHORT (2-3 sentences). Never mention you are AI. Start by introducing yourself.';
 
-    <script type="module">
-        // ---- SDK Import ----
-        let StreamingAvatar, TaskType, StreamingEvents, AvatarQuality, VoiceEmotion;
-        try {
-            const mod = await import('https://esm.sh/@heygen/streaming-avatar@2');
-            StreamingAvatar = mod.StreamingAvatar || mod.default;
-            TaskType = mod.TaskType;
-            StreamingEvents = mod.StreamingEvents;
-            AvatarQuality = mod.AvatarQuality;
-            VoiceEmotion = mod.VoiceEmotion;
-            console.log('✅ HeyGen SDK loaded', Object.keys(mod));
-        } catch (e) {
-            document.getElementById('status').textContent = '❌ SDK failed to load';
-            document.getElementById('error-log').textContent = e.message;
-            console.error('SDK load error:', e);
-            throw e;
-        }
+            var sessionId = null;
+            var peerConnection = null;
 
-        // ---- Config ----
-        const API_KEY = 'sk_V2_hgu_kiKFJG7KJov_9vvKkvT4fFbndbtZvT7kliw6GsHzeEuS';
-        const DATE_PROMPT = `You are a fun, charming person on a first video date named Alex. Be warm, curious, flirty. Ask fun questions. Keep responses SHORT (2-3 sentences). React to what they say. Never mention you're AI. Start by introducing yourself.`;
+            var statusEl = document.getElementById('status');
+            var errorEl = document.getElementById('error-log');
+            var startBtn = document.getElementById('start-btn');
 
-        // ---- State ----
-        let avatar = null;
-        let voiceActive = false;
+            function log(msg) { statusEl.textContent = msg; console.log('[heygen] ' + msg); }
+            function err(msg) { errorEl.textContent = msg; console.error('[heygen] ' + msg); }
 
-        // ---- Elements ----
-        const $ = id => document.getElementById(id);
-        const statusEl = $('status');
-        const errorEl = $('error-log');
+            // ---- START BUTTON ----
+            startBtn.addEventListener('click', function() {
+                log('🔄 Starting...');
+                startBtn.classList.add('disabled');
+                errorEl.textContent = '';
+                startSession();
+            });
 
-        function log(msg) { statusEl.textContent = msg; console.log('[heygen]', msg); }
+            // Also handle touch for iOS
+            startBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                startBtn.click();
+            });
 
-        // ---- Mark SDK loaded ----
-        log('✅ Ready — tap Start to begin');
+            async function startSession() {
+                try {
+                    // Step 1: Get token
+                    log('🔄 Getting session token...');
+                    var tokenRes = await fetch('https://api.heygen.com/v1/streaming.create_token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY }
+                    });
+                    var tokenData = await tokenRes.json();
+                    console.log('Token response:', tokenData);
 
-        // ---- Start ----
-        $('start-btn').addEventListener('click', async () => {
-            $('start-btn').disabled = true;
-            errorEl.textContent = '';
-
-            try {
-                log('🔄 Getting token...');
-                const tokenRes = await fetch('https://api.heygen.com/v1/streaming.create_token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY }
-                });
-                const tokenData = await tokenRes.json();
-                console.log('Token:', tokenData);
-                if (tokenData.error) throw new Error('Token error: ' + tokenData.error);
-                const token = tokenData.data?.token;
-                if (!token) throw new Error('No token returned');
-
-                log('🎭 Creating avatar session...');
-                avatar = new StreamingAvatar({ token });
-
-                avatar.on(StreamingEvents.STREAM_READY, (evt) => {
-                    console.log('STREAM_READY', evt);
-                    log('✅ Connected! Type a message or start voice 👋');
-                    const mediaStream = evt.detail;
-                    if (mediaStream) {
-                        const vid = $('avatar-video');
-                        vid.srcObject = mediaStream;
-                        vid.muted = false;
-                        vid.play().catch(e => console.warn('play():', e));
+                    if (!tokenData.data || !tokenData.data.token) {
+                        throw new Error('No token: ' + JSON.stringify(tokenData));
                     }
-                    $('video-container').style.display = 'block';
-                    $('controls').style.display = 'flex';
-                });
+                    var token = tokenData.data.token;
 
-                avatar.on(StreamingEvents.AVATAR_START_TALKING, () => { $('state').textContent = 'Speaking...'; });
-                avatar.on(StreamingEvents.AVATAR_STOP_TALKING, () => { $('state').textContent = 'Listening...'; });
-                avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => { log('Disconnected'); });
+                    // Step 2: Create streaming session via REST
+                    log('📞 Creating avatar session...');
+                    var avatarId = document.getElementById('avatar-select').value || undefined;
 
-                const avatarId = $('avatar-select').value || undefined;
+                    var sessionRes = await fetch('https://api.heygen.com/v1/streaming.new', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({
+                            quality: 'high',
+                            avatar_name: avatarId,
+                            knowledge_base: DATE_PROMPT,
+                            voice: { emotion: 'friendly' },
+                            language: 'en',
+                            version: 'v2'
+                        })
+                    });
+                    var sessionData = await sessionRes.json();
+                    console.log('Session response:', sessionData);
 
-                log('📞 Starting stream...');
-                const session = await avatar.createStartAvatar({
-                    avatarName: avatarId,
-                    quality: AvatarQuality.High,
-                    knowledgeBase: DATE_PROMPT,
-                    voice: { emotion: VoiceEmotion.FRIENDLY },
-                    language: 'en',
-                });
-                console.log('Session:', session);
-                log('⏳ Waiting for stream...');
+                    if (sessionData.code || sessionData.error) {
+                        throw new Error('Session error: ' + (sessionData.message || sessionData.error || JSON.stringify(sessionData)));
+                    }
 
-            } catch (err) {
-                log('❌ Error');
-                errorEl.textContent = err.message || String(err);
-                $('start-btn').disabled = false;
-                console.error('Start error:', err);
-            }
-        });
+                    var data = sessionData.data || sessionData;
+                    sessionId = data.session_id;
 
-        // ---- Send text ----
-        $('send-btn').addEventListener('click', async () => {
-            if (!avatar) return;
-            const text = $('chat-input').value.trim();
-            if (!text) return;
-            $('chat-input').value = '';
-            log('💬 Sending: ' + text.substring(0, 40) + '...');
-            try {
-                await avatar.speak({ text, task_type: TaskType.TALK });
-            } catch (e) { errorEl.textContent = e.message; }
-        });
-        $('chat-input').addEventListener('keypress', e => { if (e.key === 'Enter') $('send-btn').click(); });
+                    if (!sessionId) {
+                        throw new Error('No session_id in response');
+                    }
 
-        // ---- Voice ----
-        $('voice-btn').addEventListener('click', async () => {
-            if (!avatar) return;
-            try {
-                if (!voiceActive) {
-                    await avatar.startVoiceChat({ useSilencePrompt: true });
-                    voiceActive = true;
-                    $('voice-btn').textContent = '🔇 Stop Voice';
-                    log('🎙 Voice active — just talk!');
-                } else {
-                    await avatar.closeVoiceChat();
-                    voiceActive = false;
-                    $('voice-btn').textContent = '🎙 Start Voice';
-                    log('Voice stopped');
+                    // Step 3: Set up WebRTC
+                    log('🔗 Setting up video connection...');
+
+                    if (data.url && data.access_token) {
+                        // LiveKit-based connection
+                        log('🎬 LiveKit session created! Loading video SDK...');
+                        await connectLiveKit(data.url, data.access_token, token);
+                    } else if (data.sdp) {
+                        // Legacy WebRTC SDP
+                        await connectWebRTC(data.sdp, data.ice_servers2 || data.ice_servers, token);
+                    } else {
+                        throw new Error('Unknown session format: ' + JSON.stringify(Object.keys(data)));
+                    }
+
+                } catch (e) {
+                    log('❌ Failed');
+                    err(e.message || String(e));
+                    startBtn.classList.remove('disabled');
+                    console.error('Full error:', e);
                 }
-            } catch (e) { errorEl.textContent = e.message; }
-        });
+            }
 
-        // ---- End ----
-        $('end-btn').addEventListener('click', async () => {
-            if (avatar) { try { await avatar.stopAvatar(); } catch(e){} avatar = null; }
-            $('video-container').style.display = 'none';
-            $('controls').style.display = 'none';
-            $('start-btn').disabled = false;
-            voiceActive = false;
-            $('voice-btn').textContent = '🎙 Start Voice';
-            log('📱 Date ended!');
-        });
+            async function connectLiveKit(url, accessToken, sessionToken) {
+                // Load LiveKit SDK dynamically
+                log('📦 Loading LiveKit SDK...');
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.js';
+
+                await new Promise(function(resolve, reject) {
+                    script.onload = resolve;
+                    script.onerror = function() { reject(new Error('Failed to load LiveKit SDK')); };
+                    document.head.appendChild(script);
+                });
+
+                log('🎬 Connecting to video room...');
+                var room = new LivekitClient.Room();
+
+                room.on(LivekitClient.RoomEvent.TrackSubscribed, function(track, publication, participant) {
+                    console.log('Track subscribed:', track.kind);
+                    if (track.kind === 'video') {
+                        var el = track.attach();
+                        el.id = 'avatar-video';
+                        el.style.width = '100%';
+                        el.style.display = 'block';
+                        var container = document.getElementById('video-container');
+                        container.innerHTML = '';
+                        container.appendChild(el);
+                        container.style.display = 'block';
+                        document.getElementById('controls').style.display = 'flex';
+                        log('✅ Connected! Type a message or start voice 👋');
+                    }
+                    if (track.kind === 'audio') {
+                        var audioEl = track.attach();
+                        document.body.appendChild(audioEl);
+                    }
+                });
+
+                room.on(LivekitClient.RoomEvent.Disconnected, function() { log('Disconnected'); });
+
+                await room.connect(url, accessToken);
+                log('⏳ Waiting for avatar video...');
+
+                // Store for later use
+                window._heygenRoom = room;
+                window._heygenToken = sessionToken;
+                window._heygenSessionId = sessionId;
+            }
+
+            async function connectWebRTC(sdp, iceServers, sessionToken) {
+                var config = { iceServers: iceServers || [{ urls: 'stun:stun.l.google.com:19302' }] };
+                peerConnection = new RTCPeerConnection(config);
+
+                peerConnection.ontrack = function(event) {
+                    console.log('Got track:', event.track.kind);
+                    if (event.track.kind === 'video') {
+                        var vid = document.getElementById('avatar-video');
+                        vid.srcObject = event.streams[0];
+                        vid.play().catch(function(e) { console.log('play error:', e); });
+                        document.getElementById('video-container').style.display = 'block';
+                        document.getElementById('controls').style.display = 'flex';
+                        log('✅ Connected! Type a message or start voice 👋');
+                    }
+                };
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                var answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // Send answer back
+                await fetch('https://api.heygen.com/v1/streaming.start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + sessionToken
+                    },
+                    body: JSON.stringify({ session_id: sessionId, sdp: answer })
+                });
+
+                log('⏳ Waiting for video...');
+            }
+
+            // ---- SEND TEXT ----
+            document.getElementById('send-btn').addEventListener('click', function() {
+                var text = document.getElementById('chat-input').value.trim();
+                if (!text || !window._heygenSessionId) return;
+                document.getElementById('chat-input').value = '';
+                log('💬 ' + text.substring(0, 40));
+
+                fetch('https://api.heygen.com/v1/streaming.task', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + window._heygenToken
+                    },
+                    body: JSON.stringify({
+                        session_id: window._heygenSessionId,
+                        text: text,
+                        task_type: 'talk'
+                    })
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                    console.log('Task response:', d);
+                }).catch(function(e) { err(e.message); });
+            });
+
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') document.getElementById('send-btn').click();
+            });
+
+            // ---- END ----
+            document.getElementById('end-btn').addEventListener('click', function() {
+                if (window._heygenRoom) {
+                    window._heygenRoom.disconnect();
+                    window._heygenRoom = null;
+                }
+                if (peerConnection) { peerConnection.close(); peerConnection = null; }
+
+                if (window._heygenSessionId && window._heygenToken) {
+                    fetch('https://api.heygen.com/v1/streaming.stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + window._heygenToken
+                        },
+                        body: JSON.stringify({ session_id: window._heygenSessionId })
+                    }).catch(function() {});
+                }
+
+                document.getElementById('video-container').style.display = 'none';
+                document.getElementById('controls').style.display = 'none';
+                startBtn.classList.remove('disabled');
+                sessionId = null;
+                log('📱 Date ended!');
+            });
+
+            // Voice button placeholder
+            document.getElementById('voice-btn').addEventListener('click', function() {
+                err('Voice requires mic access — use Send text for now');
+            });
+
+            console.log('[heygen] Page ready ✅');
+        })();
     </script>
 </body>
 </html>
