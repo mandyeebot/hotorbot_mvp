@@ -230,6 +230,7 @@
             <div class="pct" id="pct-remote">0%</div>
         </div>
         <div class="upload-status" id="upload-status">Preparing files...</div>
+        <div class="upload-status" id="upload-debug" style="font-size:11px;color:#666;margin-top:8px;word-break:break-all;"></div>
     </div>
 
     <script>
@@ -288,36 +289,68 @@
             }
         }
 
+        function pickMimeType() {
+            // iOS Safari only supports mp4, not webm
+            const candidates = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm',
+                'video/mp4',
+            ];
+            for (const mt of candidates) {
+                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mt)) return mt;
+            }
+            return ''; // let browser pick default
+        }
+
         function createRecorder(stream) {
+            if (typeof MediaRecorder === 'undefined') {
+                console.warn('MediaRecorder not supported on this browser');
+                return { recorder: null, blobPromise: Promise.resolve(null) };
+            }
             const chunks = [];
-            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-                ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-            const recorder = new MediaRecorder(stream, { mimeType });
+            const mimeType = pickMimeType();
+            const opts = mimeType ? { mimeType } : {};
+            let recorder;
+            try {
+                recorder = new MediaRecorder(stream, opts);
+            } catch (e) {
+                console.error('MediaRecorder init failed:', e);
+                return { recorder: null, blobPromise: Promise.resolve(null) };
+            }
             recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
             const blobPromise = new Promise(resolve => {
                 recorder.onstop = () => {
-                    const blob = chunks.length > 0 ? new Blob(chunks, { type: mimeType }) : null;
+                    const blob = chunks.length > 0 ? new Blob(chunks, { type: mimeType || 'video/webm' }) : null;
+                    console.log(`Recording stopped: ${chunks.length} chunks, blob=${blob ? blob.size + ' bytes' : 'null'}, mime=${mimeType}`);
                     resolve(blob);
                 };
             });
             recorder.start(1000);
+            console.log(`Recording started: mime=${mimeType || 'browser default'}`);
             return { recorder, blobPromise };
         }
 
         function downloadBlob(blob, filename) {
+            // Skip download on iOS — blob URLs open as blank pages
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) {
+                console.log('iOS detected — skipping blob download, relying on Supabase upload');
+                return;
+            }
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = filename; a.click();
             URL.revokeObjectURL(url);
         }
 
-        async function uploadToSupabase(blob, storagePath, barId, pctId) {
+        async function uploadToSupabase(blob, storagePath, barId, pctId, mimeOverride) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`, true);
                 xhr.setRequestHeader('apikey', SUPABASE_SERVICE_KEY);
                 xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_KEY}`);
-                xhr.setRequestHeader('Content-Type', 'video/webm');
+                xhr.setRequestHeader('Content-Type', mimeOverride || blob.type || 'video/webm');
                 xhr.setRequestHeader('x-upsert', 'true');
 
                 xhr.upload.onprogress = (e) => {
@@ -372,30 +405,38 @@
             document.getElementById('upload-overlay').style.display = 'flex';
             document.getElementById('upload-status').textContent = 'Uploading...';
 
-            const localPath = `${SESSION_UUID}_trainingvideo.webm`;
-            const remotePath = `${SESSION_UUID}_ai_interviewer.webm`;
+            const debugEl = document.getElementById('upload-debug');
+            debugEl.textContent = `local=${localBlob ? localBlob.size+'b/'+localBlob.type : 'null'} remote=${remoteBlob ? remoteBlob.size+'b/'+remoteBlob.type : 'null'}`;
+            const ext = (localBlob && localBlob.type.includes('mp4')) ? 'mp4' : 'webm';
+            const contentType = (ext === 'mp4') ? 'video/mp4' : 'video/webm';
+            const localPath = `${SESSION_UUID}_trainingvideo.${ext}`;
+            const remotePath = `${SESSION_UUID}_ai_interviewer.${ext}`;
 
             const uploads = [];
 
             if (localBlob) {
+                console.log(`Local blob: ${localBlob.size} bytes, type=${localBlob.type}`);
                 downloadBlob(localBlob, localPath);
                 uploads.push(
-                    uploadToSupabase(localBlob, localPath, 'bar-local', 'pct-local')
+                    uploadToSupabase(localBlob, localPath, 'bar-local', 'pct-local', contentType)
                         .then(() => logToDatabase('training', localPath, localBlob.size))
-                        .catch(e => console.error('Local upload failed:', e))
+                        .catch(e => { console.error('Local upload failed:', e); document.getElementById('pct-local').textContent = '❌ ' + e.message; })
                 );
             } else {
+                console.warn('No local blob captured');
                 document.getElementById('pct-local').textContent = '⚠️ No data';
             }
 
             if (remoteBlob) {
+                console.log(`Remote blob: ${remoteBlob.size} bytes, type=${remoteBlob.type}`);
                 downloadBlob(remoteBlob, remotePath);
                 uploads.push(
-                    uploadToSupabase(remoteBlob, remotePath, 'bar-remote', 'pct-remote')
+                    uploadToSupabase(remoteBlob, remotePath, 'bar-remote', 'pct-remote', contentType)
                         .then(() => logToDatabase('ai_interviewer', remotePath, remoteBlob.size))
-                        .catch(e => console.error('Remote upload failed:', e))
+                        .catch(e => { console.error('Remote upload failed:', e); document.getElementById('pct-remote').textContent = '❌ ' + e.message; })
                 );
             } else {
+                console.warn('No remote blob captured');
                 document.getElementById('pct-remote').textContent = '⚠️ No data';
             }
 
