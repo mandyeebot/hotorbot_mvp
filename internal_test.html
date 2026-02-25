@@ -236,7 +236,7 @@
         // ===== CONFIG =====
         const SUPABASE_URL = 'https://dvxkihjlkilmapzaoasg.supabase.co';
         const SUPABASE_SERVICE_KEY = 'sb_secret_HYUUQYsHr4IeRjYUYLfrng_Nr7DxmK-';
-        const SUPABASE_ANON_KEY = 'sb_publishable_n_X7rQsT6FLt7P0jP-MBDA_FmJ4J-cF';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2eGtpaGpsa2lsbWFwemFvYXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MDA3MTEsImV4cCI6MjA4NzM3NjcxMX0.bMId5gI4TwHHGjvgV2R4UdA1knCXFUC0b4kBPEjszXE';
         const STORAGE_BUCKET = 'hotorbot-videos';
         const AMANDA_USER_ID = 'a0000000-0000-0000-0000-000000000001';
 
@@ -315,6 +315,7 @@
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`, true);
+                xhr.setRequestHeader('apikey', SUPABASE_SERVICE_KEY);
                 xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_KEY}`);
                 xhr.setRequestHeader('Content-Type', 'video/webm');
                 xhr.setRequestHeader('x-upsert', 'true');
@@ -349,8 +350,8 @@
             await fetch(`${SUPABASE_URL}/rest/v1/hotorbot_user_videos`, {
                 method: 'POST',
                 headers: {
+                    'apikey': SUPABASE_SERVICE_KEY,
                     'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                    'apikey': SUPABASE_ANON_KEY,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=minimal'
                 },
@@ -372,7 +373,7 @@
             document.getElementById('upload-status').textContent = 'Uploading...';
 
             const localPath = `${SESSION_UUID}_trainingvideo.webm`;
-            const remotePath = `AI_Interviewer_Alex_RecordedVideo.webm`;
+            const remotePath = `${SESSION_UUID}_ai_interviewer.webm`;
 
             const uploads = [];
 
